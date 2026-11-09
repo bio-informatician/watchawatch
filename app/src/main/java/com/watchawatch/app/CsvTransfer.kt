@@ -10,7 +10,7 @@ data class ImportSummary(
     val skippedDuplicates: Int
 )
 
-internal fun importTimeEntries(csv: String, current: AppState): Pair<AppState, ImportSummary> {
+fun importTimeEntries(csv: String, current: AppState): Pair<AppState, ImportSummary> {
     val records = parseCsvRecords(csv.removePrefix("\uFEFF"))
     require(records.isNotEmpty()) { "The CSV file is empty." }
     require(records.size <= MAX_IMPORT_ROWS + 1) { "The CSV contains too many rows (maximum $MAX_IMPORT_ROWS)." }
@@ -113,7 +113,7 @@ internal fun importTimeEntries(csv: String, current: AppState): Pair<AppState, I
     return updated to ImportSummary(createdProjects.size, importedEntries.size, skipped)
 }
 
-internal fun parseCsvRecords(input: String): List<List<String>> {
+fun parseCsvRecords(input: String): List<List<String>> {
     val records = mutableListOf<List<String>>()
     var row = mutableListOf<String>()
     val field = StringBuilder()

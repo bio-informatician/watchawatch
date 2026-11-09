@@ -461,7 +461,7 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
     }
 
     private fun openApp() {
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val intent = Intent().setClassName(this, "com.watchawatch.app.MainActivity").apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         startActivity(intent)
@@ -477,7 +477,7 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
         val openApp = PendingIntent.getActivity(
             this,
             0,
-            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            Intent().setClassName(this, "com.watchawatch.app.MainActivity").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val toggleTimer = PendingIntent.getService(

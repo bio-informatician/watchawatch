@@ -49,7 +49,7 @@ data class ProjectExpense(
     val currencyCode: String = "USD"
 )
 
-internal data class ReceiptDraft(val projectId: String, val title: String, val amountCents: Long)
+data class ReceiptDraft(val projectId: String, val title: String, val amountCents: Long)
 
 data class AppState(
     val projects: List<Project> = listOf(Project("general", "Personal", 0)),

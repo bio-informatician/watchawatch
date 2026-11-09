@@ -15,7 +15,7 @@ data class ProjectForecast(
     val daysUntilBudget: Int?
 )
 
-internal fun auditEntries(
+fun auditEntries(
     entries: List<TimeEntry>,
     projects: List<Project>,
     maxContinuousMs: Long = 12 * 60 * 60 * 1000L
@@ -34,7 +34,7 @@ internal fun auditEntries(
     }
 }
 
-internal fun isTimesheetEntryLocked(
+fun isTimesheetEntryLocked(
     entry: TimeEntry,
     enabled: Boolean,
     lockAfterDays: Int,
@@ -45,7 +45,7 @@ internal fun isTimesheetEntryLocked(
     return entry.startMs < cutoff
 }
 
-internal fun forecastProject(
+fun forecastProject(
     entries: List<TimeEntry>,
     projectId: String,
     budgetMinutes: Long,
