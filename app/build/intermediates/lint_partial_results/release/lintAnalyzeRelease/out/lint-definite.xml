@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.13.2" type="incidents">
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.compose:compose-bom than 2024.12.01 is available: 2026.09.00">
+        <fix-replace
+            description="Change to 2026.09.00"
+            family="Update versions"
+            oldString="2024.12.01"
+            replacement="2026.09.00"
+            priority="0"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="74"
+            column="20"
+            startOffset="2312"
+            endLine="74"
+            endColumn="71"
+            endOffset="2363"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.activity:activity-compose than 1.10.0 is available: 1.13.0">
+        <fix-replace
+            description="Change to 1.13.0"
+            family="Update versions"
+            oldString="1.10.0"
+            replacement="1.13.0"
+            priority="0"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="75"
+            column="20"
+            startOffset="2384"
+            endLine="75"
+            endColumn="63"
+            endOffset="2427"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.11.0">
+        <fix-replace
+            description="Change to 2.11.0"
+            family="Update versions"
+            oldString="2.8.7"
+            replacement="2.11.0"
+            priority="0"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="78"
+            column="20"
+            startOffset="2579"
+            endLine="78"
+            endColumn="74"
+            endOffset="2633"/>
+    </incident>
+
+    <incident
+        id="ObsoleteSdkInt"
+        severity="warning"
+        message="Unnecessary; `SDK_INT` is always >= 26">
+        <fix-data conditional="true"/>
+        <location
+            file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/FloatingTimerService.kt"
+            line="258"
+            column="13"
+            startOffset="10109"
+            endLine="258"
+            endColumn="59"
+            endOffset="10155"/>
+    </incident>
+
+    <incident
+        id="ObsoleteSdkInt"
+        severity="warning"
+        message="Unnecessary; `SDK_INT` is always >= 26">
+        <fix-data conditional="true"/>
+        <location
+            file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/FloatingTimerService.kt"
+            line="307"
+            column="17"
+            startOffset="11982"
+            endLine="307"
+            endColumn="63"
+            endOffset="12028"/>
+    </incident>
+
+    <incident
+        id="ObsoleteSdkInt"
+        severity="warning"
+        message="This folder configuration (`v26`) is unnecessary; `minSdkVersion` is 26. Merge all the resources in this folder into `mipmap-anydpi`.">
+        <fix-data file="${:app*release*MAIN*sourceProvider*0*resDir*0}/mipmap-anydpi-v26" folderName="mipmap-anydpi" requiresApi="26"/>
+        <location
+            file="${:app*release*MAIN*sourceProvider*0*resDir*0}/mipmap-anydpi-v26"/>
+    </incident>
+
+    <incident
+        id="MonochromeLauncherIcon"
+        severity="warning"
+        message="The application adaptive icon is missing a monochrome tag">
+        <location
+            file="${:app*release*MAIN*sourceProvider*0*resDir*0}/mipmap-anydpi-v26/ic_launcher.xml"
+            line="1"
+            column="1"
+            startOffset="0"
+            endLine="4"
+            endColumn="17"
+            endOffset="230"/>
+    </incident>
+
+    <incident
+        id="MonochromeLauncherIcon"
+        severity="warning"
+        message="The application adaptive roundIcon is missing a monochrome tag">
+        <location
+            file="${:app*release*MAIN*sourceProvider*0*resDir*0}/mipmap-anydpi-v26/ic_launcher_round.xml"
+            line="1"
+            column="1"
+            startOffset="0"
+            endLine="4"
+            endColumn="17"
+            endOffset="230"/>
+    </incident>
+
+    <incident
+        id="UseKtx"
+        severity="warning"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?">
+        <fix-composite
+            description="Replace with the edit extension function"
+            family="Replace with the edit extension function"
+            robot="true"
+            independent="true">
+            <fix-replace
+                description="Replace with edit"
+                robot="true"
+                independent="true"
+                oldString="edit("
+                replacement="edit"
+                reformat="value"
+                imports="androidx.core.content.edit"
+                priority="0">
+                <range
+                    file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+                    startOffset="14432"
+                    endOffset="14437"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with  {"
+                robot="true"
+                independent="true"
+                oldString=")"
+                replacement=" {"
+                priority="0">
+                <range
+                    file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+                    startOffset="14437"
+                    endOffset="14438"/>
+            </fix-replace>
+            <fix-replace
+                description="Delete &quot;.&quot;"
+                robot="true"
+                independent="true"
+                oldString="."
+                replacement=""
+                priority="0">
+                <range
+                    file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+                    startOffset="14438"
+                    endOffset="14439"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with }"
+                robot="true"
+                independent="true"
+                oldString=".apply()"
+                replacement="}"
+                priority="0">
+                <range
+                    file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+                    startOffset="14474"
+                    endOffset="14482"/>
+            </fix-replace>
+        </fix-composite>
+        <location
+            file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+            line="310"
+            column="9"
+            startOffset="14420"
+            endLine="310"
+            endColumn="27"
+            endOffset="14438"/>
+    </incident>
+
+    <incident
+        id="UseKtx"
+        severity="warning"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?">
+        <fix-composite
+            description="Replace with the edit extension function"
+            family="Replace with the edit extension function"
+            robot="true"
+            independent="true">
+            <fix-replace
+                description="Replace with edit"
+                robot="true"
+                independent="true"
+                oldString="edit("
+                replacement="edit"
+                reformat="value"
+                imports="androidx.core.content.edit"
+                priority="0">
+                <range
+                    file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+                    startOffset="14529"
+                    endOffset="14534"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with (commit = true) {"
+                robot="true"
+                independent="true"
+                oldString=")"
+                replacement="(commit = true) {"
+                priority="0">
+                <range
+                    file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+                    startOffset="14534"
+                    endOffset="14535"/>
+            </fix-replace>
+            <fix-replace
+                description="Delete &quot;.&quot;"
+                robot="true"
+                independent="true"
+                oldString="."
+                replacement=""
+                priority="0">
+                <range
+                    file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+                    startOffset="14535"
+                    endOffset="14536"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with }"
+                robot="true"
+                independent="true"
+                oldString=".commit()"
+                replacement="}"
+                priority="0">
+                <range
+                    file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+                    startOffset="14543"
+                    endOffset="14552"/>
+            </fix-replace>
+        </fix-composite>
+        <location
+            file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+            line="313"
+            column="28"
+            startOffset="14517"
+            endLine="313"
+            endColumn="46"
+            endOffset="14535"/>
+    </incident>
+
+    <incident
+        id="UseKtx"
+        severity="warning"
+        message="Use the KTX extension function `String.toUri` instead?">
+        <fix-replace
+            description="Replace with the toUri extension function"
+            family="Replace with the toUri extension function"
+            robot="true"
+            independent="true"
+            oldString="Uri.parse(&quot;package:$packageName&quot;)"
+            replacement="&quot;package:$packageName&quot;.toUri()"
+            reformat="value"
+            imports="androidx.core.net.toUri"
+            priority="0">
+            <range
+                file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+                startOffset="29774"
+                endOffset="29807"/>
+        </fix-replace>
+        <location
+            file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+            line="604"
+            column="37"
+            startOffset="29774"
+            endLine="604"
+            endColumn="70"
+            endOffset="29807"/>
+    </incident>
+
+    <incident
+        id="UseKtx"
+        severity="warning"
+        message="Use the KTX extension function `String.toUri` instead?">
+        <fix-replace
+            description="Replace with the toUri extension function"
+            family="Replace with the toUri extension function"
+            robot="true"
+            independent="true"
+            oldString="Uri.parse(&quot;package:$packageName&quot;)"
+            replacement="&quot;package:$packageName&quot;.toUri()"
+            reformat="value"
+            imports="androidx.core.net.toUri"
+            priority="0">
+            <range
+                file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+                startOffset="30153"
+                endOffset="30186"/>
+        </fix-replace>
+        <location
+            file="${:app*release*MAIN*sourceProvider*0*javaDir*0}/com/watchawatch/app/MainActivity.kt"
+            line="613"
+            column="33"
+            startOffset="30153"
+            endLine="613"
+            endColumn="66"
+            endOffset="30186"/>
+    </incident>
+
+</incidents>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#103B43</color>
+    <string name="notification_timer_running">Timer running · Tap to return</string>
+    <string name="overlay_focus_time">FOCUS TIME</string>
+</resources>

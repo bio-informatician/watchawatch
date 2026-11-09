@@ -1,0 +1,4 @@
+<resources>
+    <string name="overlay_focus_time">FOCUS TIME</string>
+    <string name="notification_timer_running">Timer running · Tap to return</string>
+</resources>
