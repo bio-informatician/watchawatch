@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -47,12 +48,14 @@ import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Tune
@@ -65,6 +68,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -445,7 +450,7 @@ class TrackerViewModel(application: Application) : AndroidViewModel(application)
 }
 
 private enum class Page(val label: String) {
-    Today("Today"), Reports("Reports"), Projects("Projects"), Settings("Settings")
+    Today("Today"), Sessions("Sessions"), Reports("Reports"), Projects("Projects"), Settings("Settings")
 }
 
 class MainActivity : ComponentActivity() {
@@ -646,6 +651,7 @@ private fun WatchaWatchApp(
     onViewReceipt: (String) -> Unit
 ) {
     var page by remember { mutableStateOf(Page.Today) }
+    var selectedSessionsProjectId by remember { mutableStateOf<String?>(null) }
     var showManual by remember { mutableStateOf(false) }
     var showAddProject by remember { mutableStateOf(false) }
     var pendingStartProject by remember { mutableStateOf<String?>(null) }
@@ -670,6 +676,7 @@ private fun WatchaWatchApp(
                             Icon(
                                 when (item) {
                                     Page.Today -> Icons.Rounded.Home
+                                    Page.Sessions -> Icons.Rounded.History
                                     Page.Reports -> Icons.Rounded.Analytics
                                     Page.Projects -> Icons.Rounded.Folder
                                     Page.Settings -> Icons.Rounded.Tune
@@ -688,7 +695,18 @@ private fun WatchaWatchApp(
                 tracker, Modifier.padding(insets),
                 onManual = { if (!state.forceTimer) showManual = true },
                 onProject = startProject,
-                onFloatAndMinimize = onFloatAndMinimize
+                onFloatAndMinimize = onFloatAndMinimize,
+                onSeeAllSessions = {
+                    selectedSessionsProjectId = null
+                    page = Page.Sessions
+                }
+            )
+            Page.Sessions -> SessionsPage(
+                state = state,
+                tracker = tracker,
+                modifier = Modifier.padding(insets),
+                selectedProjectId = selectedSessionsProjectId,
+                onSelectProject = { selectedSessionsProjectId = it }
             )
             Page.Reports -> ReportsPage(state, tracker.elapsedNow(), Modifier.padding(insets))
             Page.Projects -> ProjectsPage(
@@ -696,7 +714,11 @@ private fun WatchaWatchApp(
                 onAdd = { showAddProject = true },
                 onProject = startProject,
                 onPickReceipt = onPickReceipt,
-                onViewReceipt = onViewReceipt
+                onViewReceipt = onViewReceipt,
+                onViewProjectSessions = { projectId ->
+                    selectedSessionsProjectId = projectId
+                    page = Page.Sessions
+                }
             )
             Page.Settings -> SettingsPage(
                 state, tracker, onExport, onImport, onDeleteAll, onManageOverlayPermission, Modifier.padding(insets)
@@ -747,7 +769,8 @@ private fun TodayPage(
     modifier: Modifier = Modifier,
     onManual: () -> Unit,
     onProject: (String) -> Unit,
-    onFloatAndMinimize: () -> Unit
+    onFloatAndMinimize: () -> Unit,
+    onSeeAllSessions: () -> Unit = {}
 ) {
     val state = tracker.state
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -955,13 +978,398 @@ private fun TodayPage(
             )
         }
         item {
-            Text("Recent sessions", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Recent sessions", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                androidx.compose.material3.TextButton(onClick = onSeeAllSessions) {
+                    Text("All sessions")
+                }
+            }
             Spacer(Modifier.height(10.dp))
             if (today.isEmpty()) {
                 EmptyState("No time logged today", "Start a timer or add a session manually.")
             } else {
                 today.take(4).forEach { entry ->
                     EntryRow(entry, state.projects)
+                }
+            }
+        }
+    }
+}
+
+private enum class SessionsViewMode {
+    ByDay, ByActivity
+}
+
+@Composable
+private fun SessionsPage(
+    state: AppState,
+    tracker: TrackerViewModel,
+    modifier: Modifier = Modifier,
+    selectedProjectId: String? = null,
+    onSelectProject: (String?) -> Unit = {}
+) {
+    var viewMode by remember { mutableStateOf(if (selectedProjectId != null) SessionsViewMode.ByActivity else SessionsViewMode.ByDay) }
+    var currentProjectId by remember(selectedProjectId) { mutableStateOf(selectedProjectId) }
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp, 24.dp, 20.dp, 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Sessions Timeline", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text("Complete list of focus sessions, intervals, and breaks.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = viewMode == SessionsViewMode.ByDay,
+                    onClick = { viewMode = SessionsViewMode.ByDay },
+                    label = { Text("📅 By Day") },
+                    modifier = Modifier.weight(1f)
+                )
+                FilterChip(
+                    selected = viewMode == SessionsViewMode.ByActivity,
+                    onClick = { viewMode = SessionsViewMode.ByActivity },
+                    label = { Text("🏷️ By Activity") },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        if (state.entries.isEmpty()) {
+            item {
+                EmptyState(
+                    "No sessions recorded yet",
+                    "Completed focus timer sessions and manual entries will appear here with exact start and end times, durations, and resumption intervals."
+                )
+            }
+        } else {
+            when (viewMode) {
+                SessionsViewMode.ByDay -> {
+                    val dayGroups = SessionTimelineLogic.groupByDay(state.entries)
+                    dayGroups.forEach { group ->
+                        item(key = "day-${group.date}") {
+                            DaySessionCard(group = group, projects = state.projects)
+                        }
+                    }
+                }
+                SessionsViewMode.ByActivity -> {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("Filter by Activity:", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                item {
+                                    FilterChip(
+                                        selected = currentProjectId == null,
+                                        onClick = {
+                                            currentProjectId = null
+                                            onSelectProject(null)
+                                        },
+                                        label = { Text("All Activities") }
+                                    )
+                                }
+                                items(state.projects, key = { "filter-${it.id}" }) { project ->
+                                    val isSelected = currentProjectId == project.id
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = {
+                                            currentProjectId = project.id
+                                            onSelectProject(project.id)
+                                        },
+                                        leadingIcon = {
+                                            Box(
+                                                Modifier.size(8.dp)
+                                                    .background(Palette[project.color % Palette.size], CircleShape)
+                                            )
+                                        },
+                                        label = { Text(project.name) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    val targetProjects = if (currentProjectId != null) {
+                        state.projects.filter { it.id == currentProjectId }
+                    } else {
+                        state.projects
+                    }
+
+                    targetProjects.forEach { project ->
+                        val summary = SessionTimelineLogic.groupByActivity(state.entries, project)
+                        if (summary.sessionCount > 0 || currentProjectId != null) {
+                            item(key = "activity-${project.id}") {
+                                ActivitySessionsCard(summary = summary, allProjects = state.projects)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DaySessionCard(group: DaySessionsGroup, projects: List<Project>) {
+    Card(
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        SessionTimelineLogic.formatDateLabel(group.date),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "${group.sessions.size} session${if (group.sessions.size == 1) "" else "s"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    formatDuration(group.totalDurationMs),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            group.sessions.forEach { interval ->
+                val project = projects.find { it.id == interval.entry.projectId }
+                val color = Palette[(project?.color ?: 0) % Palette.size]
+
+                Column(
+                    Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(Modifier.size(10.dp).background(color, CircleShape))
+                        Column(Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    project?.name ?: "Archived project",
+                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                if (interval.entry.task.isNotBlank() && interval.entry.task != (project?.name ?: "")) {
+                                    Text(
+                                        "· ${interval.entry.task}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Text(
+                                "${timeOfDay(interval.entry.startMs)} – ${timeOfDay(interval.entry.endMs)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (interval.entry.note.isNotBlank()) {
+                                Text(
+                                    "Note: ${interval.entry.note}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Card(
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                        ) {
+                            Text(
+                                formatDuration(interval.entry.durationMs),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    if (interval.hasSubsequentSession) {
+                        val resumptionText = SessionTimelineLogic.formatResumption(interval)
+                        if (resumptionText != null) {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 22.dp, top = 2.dp, bottom = 4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Schedule,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    resumptionText,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActivitySessionsCard(summary: ActivitySessionsSummary, allProjects: List<Project>) {
+    val project = summary.project
+    val color = Palette[project.color % Palette.size]
+
+    Card(
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(Modifier.size(16.dp).background(color, CircleShape))
+                Column(Modifier.weight(1f)) {
+                    Text(project.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "${summary.sessionCount} sessions · Avg: ${formatDuration(summary.averageDurationMs)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    formatDuration(summary.totalDurationMs),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            if (summary.sessions.isEmpty()) {
+                Text(
+                    "No sessions tracked for ${project.name} yet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                summary.sessions.forEach { interval ->
+                    Column(
+                        Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    if (interval.entry.task.isNotBlank()) interval.entry.task else project.name,
+                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                val dateStr = Instant.ofEpochMilli(interval.entry.startMs)
+                                    .atZone(ZoneId.systemDefault())
+                                    .format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()))
+                                Text(
+                                    "$dateStr · ${timeOfDay(interval.entry.startMs)} – ${timeOfDay(interval.entry.endMs)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (interval.entry.note.isNotBlank()) {
+                                    Text(
+                                        "Note: ${interval.entry.note}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Card(
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                            ) {
+                                Text(
+                                    formatDuration(interval.entry.durationMs),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        if (interval.hasSubsequentSession) {
+                            val nextDateStr = Instant.ofEpochMilli(interval.nextStartMs!!)
+                                .atZone(ZoneId.systemDefault())
+                                .format(DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.getDefault()))
+                            val gapText = interval.gapMs?.let { SessionTimelineLogic.formatGap(it) } ?: ""
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 12.dp, top = 2.dp, bottom = 2.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Schedule,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    "Next ${project.name} session: $nextDateStr ($gapText)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1062,7 +1470,8 @@ private fun ProjectsPage(
     onAdd: () -> Unit,
     onProject: (String) -> Unit,
     onPickReceipt: (String, String, Long) -> Unit,
-    onViewReceipt: (String) -> Unit
+    onViewReceipt: (String) -> Unit,
+    onViewProjectSessions: (String) -> Unit = {}
 ) {
     var editingProjectId by remember { mutableStateOf<String?>(null) }
     LazyColumn(
@@ -1101,6 +1510,9 @@ private fun ProjectsPage(
                             Text("${projectEntries.size} sessions", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text(formatDuration(duration), fontWeight = FontWeight.SemiBold)
+                        IconButton(onClick = { onViewProjectSessions(project.id) }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Rounded.History, contentDescription = "View sessions for ${project.name}", tint = MaterialTheme.colorScheme.primary)
+                        }
                         IconButton(onClick = { editingProjectId = project.id }, modifier = Modifier.size(48.dp)) {
                             Icon(Icons.Rounded.Tune, contentDescription = "Project settings for ${project.name}", tint = MaterialTheme.colorScheme.primary)
                         }

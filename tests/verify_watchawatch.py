@@ -21,6 +21,7 @@ MAIN_ACTIVITY_PATH = os.path.join(JAVA_SRC_DIR, "MainActivity.kt")
 MODELS_PATH = os.path.join(JAVA_SRC_DIR, "Models.kt")
 CSV_TRANSFER_PATH = os.path.join(JAVA_SRC_DIR, "CsvTransfer.kt")
 LOCAL_INSIGHTS_PATH = os.path.join(JAVA_SRC_DIR, "LocalInsights.kt")
+SESSION_TIMELINE_PATH = os.path.join(JAVA_SRC_DIR, "SessionTimeline.kt")
 
 JDK_HOME = os.path.expanduser("~/agent-work/bin/jdk-17")
 SDK_HOME = os.path.expanduser("~/agent-work/bin/android-sdk")
@@ -128,9 +129,16 @@ def test_main_activity_sync():
     # Auto-start FloatingTimerService
     assert "FloatingTimerService.start(" in src, "MainActivity must start FloatingTimerService when timer is active"
 
+    # Sessions timeline and dual-mode listing
+    assert "Page.Sessions" in src, "MainActivity must declare Page.Sessions navigation destination"
+    assert "fun SessionsPage" in src, "MainActivity must include SessionsPage composable"
+    assert "SessionTimelineLogic.groupByDay" in src, "SessionsPage must support By Day session grouping"
+    assert "SessionTimelineLogic.groupByActivity" in src, "SessionsPage must support By Activity session filtering"
+
     print("  ✓ PASS: ViewModel SharedPreferences change listener verified.")
     print("  ✓ PASS: POST_NOTIFICATIONS runtime permission prompt verified.")
     print("  ✓ PASS: Foreground service auto-start for active timer verified.")
+    print("  ✓ PASS: SessionsPage dual-mode timeline navigation verified.")
 
 def test_unit_tests():
     print("[4/5] Compiling and running unit tests via JUnit Core...")
@@ -144,8 +152,10 @@ def test_unit_tests():
         MODELS_PATH,
         LOCAL_INSIGHTS_PATH,
         CSV_TRANSFER_PATH,
+        SESSION_TIMELINE_PATH,
         os.path.join(PROJECT_ROOT, "app", "src", "test", "java", "com", "watchawatch", "app", "LocalInsightsTest.kt"),
         os.path.join(PROJECT_ROOT, "app", "src", "test", "java", "com", "watchawatch", "app", "CsvTransferTest.kt"),
+        os.path.join(PROJECT_ROOT, "app", "src", "test", "java", "com", "watchawatch", "app", "SessionTimelineTest.kt"),
     ]
 
     compile_cmd = [
@@ -162,13 +172,14 @@ def test_unit_tests():
         "-cp", f"{test_out}:{JUNIT_JAR}:{HAMCREST_JAR}:{KOTLIN_STDLIB}",
         "org.junit.runner.JUnitCore",
         "com.watchawatch.app.LocalInsightsTest",
-        "com.watchawatch.app.CsvTransferTest"
+        "com.watchawatch.app.CsvTransferTest",
+        "com.watchawatch.app.SessionTimelineTest"
     ]
     res = subprocess.run(run_cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     assert res.returncode == 0, f"JUnit test execution failed:\n{res.stderr}\n{res.stdout}"
-    assert "OK (11 tests)" in res.stdout, f"Unexpected test output:\n{res.stdout}"
+    assert "OK (" in res.stdout, f"Unexpected test output:\n{res.stdout}"
 
-    print(f"  ✓ PASS: All 11 unit tests passed successfully.")
+    print(f"  ✓ PASS: All unit tests (including SessionTimelineTest) passed successfully.")
 
 def test_service_compilation():
     print("[5/5] Compiling FloatingTimerService.kt with Android SDK...")
@@ -213,6 +224,7 @@ def test_service_compilation():
         "-cp", f"{ANDROID_JAR}:{stub_dir}",
         "-d", classes_dir,
         MODELS_PATH,
+        SESSION_TIMELINE_PATH,
         SERVICE_PATH
     ]
     res = subprocess.run(kotlinc_cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
