@@ -17,7 +17,7 @@ check(!hasAnyUploadSigning || hasUploadSigning) {
 
 android {
     namespace = "com.watchawatch.app"
-    compileSdk = 36
+    compileSdk = 34
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -27,7 +27,7 @@ android {
     defaultConfig {
         applicationId = "com.watchawatch.app"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }

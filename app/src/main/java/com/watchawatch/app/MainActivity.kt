@@ -3,7 +3,10 @@ package com.watchawatch.app
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -130,69 +133,6 @@ private const val MAX_NOTE_LENGTH = 5_000
 private const val MAX_CUSTOM_FIELD_VALUE_LENGTH = 500
 private const val MAX_ENTRY_MINUTES = 10_080
 
-data class Project(
-    val id: String,
-    val name: String,
-    val color: Int,
-    val billRateCentsPerHour: Long = 0,
-    val laborCostCentsPerHour: Long = 0,
-    val budgetMinutes: Long = 0,
-    val retainerCents: Long = 0,
-    val currencyCode: String = "USD",
-    val budgetAlertPercent: Int = 80
-)
-data class TimeEntry(
-    val id: String,
-    val projectId: String,
-    val task: String,
-    val startMs: Long,
-    val endMs: Long,
-    val durationMs: Long,
-    val note: String = "",
-    val customFieldValue: String = "",
-    val billRateCentsPerHour: Long = 0,
-    val laborCostCentsPerHour: Long = 0,
-    val currencyCode: String = "USD"
-)
-data class ActiveTimer(
-    val projectId: String,
-    val task: String,
-    val startedAtMs: Long,
-    val elapsedBeforeMs: Long,
-    val running: Boolean,
-    val note: String = "",
-    val customFieldValue: String = "",
-    val billRateCentsPerHour: Long = 0,
-    val laborCostCentsPerHour: Long = 0,
-    val currencyCode: String = "USD"
-)
-data class ProjectExpense(
-    val id: String,
-    val projectId: String,
-    val title: String,
-    val amountCents: Long,
-    val createdAtMs: Long,
-    val receiptFileName: String = "",
-    val currencyCode: String = "USD"
-)
-private data class ReceiptDraft(val projectId: String, val title: String, val amountCents: Long)
-data class AppState(
-    val projects: List<Project> = listOf(Project("general", "Personal", 0)),
-    val entries: List<TimeEntry> = emptyList(),
-    val active: ActiveTimer? = null,
-    val dailyGoalMinutes: Int = 240,
-    val darkMode: Boolean = false,
-    val forceTimer: Boolean = false,
-    val requireTaskDescription: Boolean = false,
-    val requireEntryNote: Boolean = false,
-    val timesheetLockEnabled: Boolean = false,
-    val timesheetLockAfterDays: Int = 30,
-    val ptoAllowanceDays: Int = 20,
-    val ptoUsedDays: Int = 0,
-    val customFieldName: String = "",
-    val expenses: List<ProjectExpense> = emptyList()
-)
-
 private class TimeRepository(context: Context) {
     private val preferences = context.getSharedPreferences("watchawatch", Context.MODE_PRIVATE)
 
@@ -316,10 +256,31 @@ private class TimeRepository(context: Context) {
         (0 until length()).map { read(getJSONObject(it)) }
 }
 
-class TrackerViewModel(application: Application) : AndroidViewModel(application) {
+class TrackerViewModel(application: Application) : AndroidViewModel(application), SharedPreferences.OnSharedPreferenceChangeListener {
     private val repository = TimeRepository(application)
     var state by mutableStateOf(repository.load())
         private set
+
+    init {
+        application.getSharedPreferences("watchawatch", Context.MODE_PRIVATE)
+            .registerOnSharedPreferenceChangeListener(this)
+    }
+
+    override fun onCleared() {
+        getApplication<Application>().getSharedPreferences("watchawatch", Context.MODE_PRIVATE)
+            .unregisterOnSharedPreferenceChangeListener(this)
+        super.onCleared()
+    }
+
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        if (key == "state") {
+            reload()
+        }
+    }
+
+    fun reload() {
+        state = repository.load()
+    }
 
     private fun update(next: AppState) {
         state = next
@@ -507,6 +468,23 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     Toast.makeText(this, "Allow WatchaWatch to display over other apps, then try again.", Toast.LENGTH_LONG).show()
+                }
+            }
+            val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { /* permission result handled */ }
+
+            LaunchedEffect(Unit) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
+            }
+
+            LaunchedEffect(state.active != null) {
+                if (state.active != null) {
+                    runCatching { FloatingTimerService.start(this@MainActivity) }
                 }
             }
             val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->

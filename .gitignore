@@ -1,2 +1,6 @@
 node_modules/
 *.log
+.gradle/
+local.properties
+build/
+app/build/
