@@ -362,6 +362,16 @@ class TrackerViewModel(application: Application) : AndroidViewModel(application)
         update(state.copy(projects = state.projects.filterNot { it.id == projectId }))
     }
 
+    fun deleteEntry(entryId: String): Boolean {
+        val before = state.entries.size
+        val next = state.copy(entries = state.entries.filterNot { it.id == entryId })
+        if (next.entries.size != before) {
+            update(next)
+            return true
+        }
+        return false
+    }
+
     fun addManualEntry(projectId: String, task: String, minutes: Int, note: String, customFieldValue: String = ""): Boolean {
         if (state.forceTimer || minutes <= 0 || minutes > MAX_ENTRY_MINUTES) return false
         val cleanTask = task.trim()
