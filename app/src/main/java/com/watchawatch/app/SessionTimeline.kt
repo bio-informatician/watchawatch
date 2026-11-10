@@ -109,6 +109,23 @@ object SessionTimelineLogic {
     }
 
     /**
+     * Formats elapsed session duration accurately.
+     */
+    fun formatDuration(milliseconds: Long): String {
+        val safeMs = milliseconds.coerceAtLeast(0)
+        val totalSeconds = safeMs / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        val seconds = totalSeconds % 60
+        return when {
+            hours > 0 -> if (minutes > 0) "${hours}h ${minutes}m" else "${hours}h"
+            minutes > 0 -> if (seconds > 0 && minutes < 10) "${minutes}m ${seconds}s" else "${minutes}m"
+            totalSeconds > 0 -> "${totalSeconds}s"
+            else -> "0m"
+        }
+    }
+
+    /**
      * Formats gap duration into a human-readable string.
      */
     fun formatGap(gapMs: Long): String {

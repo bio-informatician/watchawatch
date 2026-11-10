@@ -179,4 +179,20 @@ class SessionTimelineTest {
         assertEquals("1h break", SessionTimelineLogic.formatGap(60 * 60_000L))
         assertEquals("2h 30m break", SessionTimelineLogic.formatGap(150 * 60_000L))
     }
+
+    @Test
+    fun testFormatDuration() {
+        assertEquals("0m", SessionTimelineLogic.formatDuration(0L))
+        assertEquals("0m", SessionTimelineLogic.formatDuration(500L))
+        assertEquals("5s", SessionTimelineLogic.formatDuration(5_000L))
+        assertEquals("25s", SessionTimelineLogic.formatDuration(25_000L))
+        assertEquals("45s", SessionTimelineLogic.formatDuration(45_000L))
+        assertEquals("1m", SessionTimelineLogic.formatDuration(60_000L))
+        assertEquals("1m 15s", SessionTimelineLogic.formatDuration(75_000L))
+        assertEquals("5m", SessionTimelineLogic.formatDuration(300_000L))
+        assertEquals("9m 45s", SessionTimelineLogic.formatDuration(9 * 60_000L + 45_000L))
+        assertEquals("15m", SessionTimelineLogic.formatDuration(15 * 60_000L + 30_000L))
+        assertEquals("1h", SessionTimelineLogic.formatDuration(3_600_000L))
+        assertEquals("1h 30m", SessionTimelineLogic.formatDuration(5_400_000L))
+    }
 }

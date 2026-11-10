@@ -1455,7 +1455,10 @@ private fun ReportsPage(state: AppState, currentElapsed: Long, modifier: Modifie
             }
         }
         item {
-            val average = if (dailyTotals.isEmpty()) 0 else weekTotal / dailyTotals.size
+            val average = if (dailyTotals.isEmpty()) 0L else weekTotal / dailyTotals.size
+            val weekSessions = state.entries.count { entry ->
+                Instant.ofEpochMilli(entry.startMs).atZone(ZoneId.systemDefault()).toLocalDate() in week
+            } + if (state.active?.let { Instant.ofEpochMilli(it.startedAtMs).atZone(ZoneId.systemDefault()).toLocalDate() in week } == true) 1 else 0
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(20.dp)) {
                 Row(Modifier.fillMaxWidth().padding(18.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
@@ -1464,7 +1467,7 @@ private fun ReportsPage(state: AppState, currentElapsed: Long, modifier: Modifie
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Sessions", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${state.entries.size}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("$weekSessions", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -2414,12 +2417,7 @@ private fun focusStreakDays(entries: List<TimeEntry>, active: ActiveTimer?): Int
 private fun isToday(timestamp: Long): Boolean =
     Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate() == LocalDate.now()
 
-private fun formatDuration(milliseconds: Long): String {
-    val minutes = (milliseconds.coerceAtLeast(0) / 60_000)
-    val hours = minutes / 60
-    val remainder = minutes % 60
-    return if (hours > 0) "${hours}h ${remainder}m" else "${remainder}m"
-}
+private fun formatDuration(milliseconds: Long): String = SessionTimelineLogic.formatDuration(milliseconds)
 
 private fun formatClock(milliseconds: Long): String {
     val seconds = milliseconds.coerceAtLeast(0) / 1000
