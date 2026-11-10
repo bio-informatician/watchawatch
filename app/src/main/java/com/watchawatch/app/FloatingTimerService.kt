@@ -26,12 +26,16 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
 import java.util.UUID
+import kotlin.math.abs
+import kotlin.math.hypot
 
 class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChangeListener {
     private val handler = Handler(Looper.getMainLooper())
@@ -41,6 +45,11 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
     private var wakeLock: PowerManager.WakeLock? = null
     private var bubble: View? = null
     private var timerLabel: TextView? = null
+    private var captionLabel: TextView? = null
+    private var dismissTarget: View? = null
+    private var dismissParams: WindowManager.LayoutParams? = null
+    private var isOverDismissTarget: Boolean = false
+    private var isAppInForeground: Boolean = false
     private var currentTimer: ActiveTimerInfo? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
     private val touchSlop by lazy { ViewConfiguration.get(this).scaledTouchSlop }
@@ -63,7 +72,7 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
                         updateNotification()
                         handler.removeCallbacks(ticker)
                         ticker.run()
-                        if (isBubbleVisible && Settings.canDrawOverlays(this@FloatingTimerService)) {
+                        if (isBubbleVisible && !isAppInForeground && Settings.canDrawOverlays(this@FloatingTimerService)) {
                             ensureBubbleAttached()
                         }
                     }
@@ -77,6 +86,9 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
             val timer = currentTimer ?: return
             val elapsed = timer.elapsedAt(System.currentTimeMillis())
             timerLabel?.text = formatOverlayTime(elapsed)
+            val taskName = timer.task.trim().ifBlank { "FOCUS" }
+            val displayTask = if (taskName.length > 9) taskName.take(8) + "…" else taskName
+            captionLabel?.text = displayTask.uppercase(Locale.getDefault())
             bubble?.contentDescription =
                 "Floating focus timer, ${formatOverlayTime(elapsed)} elapsed. Tap to return to WatchaWatch."
 
@@ -114,18 +126,38 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_HIDE_FLOATING_TIMER -> {
-                isBubbleVisible = false
-                preferences.edit().putBoolean(BUBBLE_PREF_KEY, false).apply()
+            ACTION_APP_FOREGROUND -> {
+                isAppInForeground = true
                 removeBubble()
+                removeDismissTarget()
+                return START_STICKY
+            }
+            ACTION_APP_BACKGROUND -> {
+                isAppInForeground = false
+                if (isBubbleVisible && Settings.canDrawOverlays(this) && currentTimer != null) {
+                    showBubble()
+                }
+                return START_STICKY
+            }
+            ACTION_SHOW_BUBBLE -> {
+                isBubbleVisible = true
+                isAppInForeground = false
+                preferences.edit().putBoolean(BUBBLE_PREF_KEY, true).apply()
+                if (Settings.canDrawOverlays(this) && currentTimer != null) {
+                    showBubble()
+                }
                 updateNotification()
+                return START_STICKY
+            }
+            ACTION_HIDE_FLOATING_TIMER -> {
+                dismissBubble()
                 return START_STICKY
             }
             ACTION_TOGGLE_BUBBLE -> {
                 isBubbleVisible = !isBubbleVisible
                 preferences.edit().putBoolean(BUBBLE_PREF_KEY, isBubbleVisible).apply()
                 if (isBubbleVisible) {
-                    if (Settings.canDrawOverlays(this)) showBubble()
+                    if (!isAppInForeground && Settings.canDrawOverlays(this)) showBubble()
                 } else {
                     removeBubble()
                 }
@@ -164,7 +196,7 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
             startForeground(NOTIFICATION_ID, notification)
         }
 
-        if (isBubbleVisible && Settings.canDrawOverlays(this)) {
+        if (isBubbleVisible && !isAppInForeground && Settings.canDrawOverlays(this)) {
             showBubble()
         }
         refreshTimer()
@@ -268,7 +300,7 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
         }
         currentTimer = timer
         updateWakeLock(timer.running)
-        if (isBubbleVisible && Settings.canDrawOverlays(this)) {
+        if (isBubbleVisible && !isAppInForeground && Settings.canDrawOverlays(this)) {
             ensureBubbleAttached()
         } else {
             removeBubble()
@@ -318,6 +350,10 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
     }
 
     private fun ensureBubbleAttached() {
+        if (isAppInForeground) {
+            removeBubble()
+            return
+        }
         val b = bubble
         if (b == null) {
             showBubble()
@@ -335,22 +371,137 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
         }
         bubble = null
         timerLabel = null
+        captionLabel = null
         bubbleParams = null
     }
 
+    private fun dismissBubble() {
+        isBubbleVisible = false
+        preferences.edit().putBoolean(BUBBLE_PREF_KEY, false).apply()
+        removeBubble()
+        removeDismissTarget()
+        updateNotification()
+        runCatching {
+            Toast.makeText(this@FloatingTimerService, "Floating timer removed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showDismissTarget() {
+        if (dismissTarget != null) return
+        val density = resources.displayMetrics.density
+        val targetSize = (72 * density).toInt()
+
+        val bg = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(AndroidColor.parseColor("#D91F2937"))
+            setStroke((2 * density).toInt(), AndroidColor.parseColor("#9CA3AF"))
+        }
+
+        val targetLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            background = bg
+            elevation = 16 * density
+
+            val icon = TextView(context).apply {
+                text = "✕"
+                textSize = 20f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(AndroidColor.WHITE)
+                gravity = Gravity.CENTER
+            }
+            val label = TextView(context).apply {
+                text = "Remove"
+                textSize = 9f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(AndroidColor.parseColor("#E5E7EB"))
+                gravity = Gravity.CENTER
+                setPadding(0, (2 * density).toInt(), 0, 0)
+            }
+            addView(icon)
+            addView(label)
+        }
+
+        val params = WindowManager.LayoutParams(
+            targetSize,
+            targetSize,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            y = (36 * density).toInt()
+        }
+
+        runCatching {
+            windowManager.addView(targetLayout, params)
+            dismissTarget = targetLayout
+            dismissParams = params
+        }.onFailure {
+            android.util.Log.w(TAG, "Could not add dismiss target", it)
+        }
+    }
+
+    private fun updateDismissTargetState(isOver: Boolean) {
+        val target = dismissTarget as? LinearLayout ?: return
+        val density = resources.displayMetrics.density
+        val bg = target.background as? GradientDrawable ?: return
+        val label = target.getChildAt(1) as? TextView
+        if (isOver) {
+            bg.setColor(AndroidColor.parseColor("#E6EF4444"))
+            bg.setStroke((3 * density).toInt(), AndroidColor.WHITE)
+            label?.text = "Drop to close"
+            target.scaleX = 1.15f
+            target.scaleY = 1.15f
+        } else {
+            bg.setColor(AndroidColor.parseColor("#D91F2937"))
+            bg.setStroke((2 * density).toInt(), AndroidColor.parseColor("#9CA3AF"))
+            label?.text = "Remove"
+            target.scaleX = 1.0f
+            target.scaleY = 1.0f
+        }
+    }
+
+    private fun removeDismissTarget() {
+        dismissTarget?.let { view ->
+            runCatching { windowManager.removeView(view) }
+        }
+        dismissTarget = null
+        dismissParams = null
+        isOverDismissTarget = false
+    }
+
     private fun showBubble() {
+        if (isAppInForeground) return
         if (bubble != null && bubble?.isAttachedToWindow == true) return
         if (!isBubbleVisible || !Settings.canDrawOverlays(this)) return
 
         val density = resources.displayMetrics.density
-        val size = (92 * density).toInt()
+        val size = (86 * density).toInt()
+
         val circle = GradientDrawable(
             GradientDrawable.Orientation.TL_BR,
-            intArrayOf(AndroidColor.rgb(13, 118, 110), AndroidColor.rgb(20, 54, 75))
+            intArrayOf(AndroidColor.rgb(13, 118, 110), AndroidColor.rgb(16, 43, 63))
         ).apply {
             shape = GradientDrawable.OVAL
-            setStroke((2 * density).toInt(), AndroidColor.rgb(255, 190, 113))
+            setStroke((2 * density).toInt(), AndroidColor.rgb(255, 158, 68))
         }
+
+        val taskName = (currentTimer?.task?.trim()?.ifBlank { "FOCUS" } ?: "FOCUS")
+        val displayTask = if (taskName.length > 9) taskName.take(8) + "…" else taskName
+
+        val caption = TextView(this).apply {
+            setTextColor(AndroidColor.rgb(194, 239, 229))
+            textSize = 8.5f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            letterSpacing = 0.12f
+            text = displayTask.uppercase(Locale.getDefault())
+        }
+        captionLabel = caption
+
         val time = TextView(this).apply {
             setTextColor(AndroidColor.WHITE)
             textSize = 14f
@@ -360,25 +511,54 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
             text = formatOverlayTime(currentTimer?.elapsedAt(System.currentTimeMillis()) ?: 0L)
         }
         timerLabel = time
-        val caption = TextView(this).apply {
-            setTextColor(AndroidColor.rgb(210, 242, 232))
-            textSize = 8f
-            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
-            gravity = Gravity.CENTER
-            letterSpacing = 0.16f
-            text = getString(R.string.overlay_focus_time)
-        }
-        val content = FloatingTimerBubble(this).apply {
+
+        val textContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
+            addView(caption, LinearLayout.LayoutParams(-1, -2))
+            addView(time, LinearLayout.LayoutParams(-1, -2))
+        }
+
+        val closeBtn = TextView(this).apply {
+            text = "✕"
+            textSize = 10f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(AndroidColor.WHITE)
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(AndroidColor.argb(180, 15, 23, 42))
+                setStroke((1 * density).toInt(), AndroidColor.argb(200, 255, 255, 255))
+            }
+            isClickable = true
+            isFocusable = false
+            contentDescription = "Close floating timer"
+            setOnClickListener {
+                dismissBubble()
+            }
+        }
+
+        val content = FloatingTimerBubble(this).apply {
             background = circle
             elevation = 12 * density
             contentDescription = "Floating focus timer. Tap to return to WatchaWatch."
             isFocusable = true
             isClickable = true
             setOnClickListener { openApp() }
-            addView(caption, LinearLayout.LayoutParams(-1, (20 * density).toInt()))
-            addView(time, LinearLayout.LayoutParams(-1, (25 * density).toInt()))
+
+            val centerParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            )
+            addView(textContainer, centerParams)
+
+            val closeSize = (22 * density).toInt()
+            val closeParams = FrameLayout.LayoutParams(closeSize, closeSize, Gravity.TOP or Gravity.END).apply {
+                topMargin = (2 * density).toInt()
+                rightMargin = (2 * density).toInt()
+            }
+            addView(closeBtn, closeParams)
         }
 
         val savedX = preferences.getInt("bubble_x", (18 * density).toInt())
@@ -394,11 +574,12 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.END
+            gravity = Gravity.TOP or Gravity.START
             x = savedX
             y = savedY
         }
-        content.setOnTouchListener(OverlayTouchListener(content, layoutParams))
+
+        content.setOnTouchListener(OverlayTouchListener(content, layoutParams, closeBtn))
         bubbleParams = layoutParams
         bubble = content
         runCatching {
@@ -411,7 +592,8 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
 
     private inner class OverlayTouchListener(
         private val view: View,
-        private val params: WindowManager.LayoutParams
+        private val params: WindowManager.LayoutParams,
+        private val closeButton: View
     ) : View.OnTouchListener {
         private var downX = 0f
         private var downY = 0f
@@ -420,32 +602,68 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
         private var dragged = false
 
         override fun onTouch(target: View, event: MotionEvent): Boolean {
+            val closeLocation = IntArray(2)
+            closeButton.getLocationOnScreen(closeLocation)
+            val isInsideClose = event.rawX >= closeLocation[0] &&
+                    event.rawX <= closeLocation[0] + closeButton.width &&
+                    event.rawY >= closeLocation[1] &&
+                    event.rawY <= closeLocation[1] + closeButton.height
+
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    if (isInsideClose) {
+                        return false
+                    }
                     downX = event.rawX
                     downY = event.rawY
                     startX = params.x.toFloat()
                     startY = params.y.toFloat()
                     dragged = false
+                    isOverDismissTarget = false
                     return true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val deltaX = event.rawX - downX
                     val deltaY = event.rawY - downY
-                    if (!dragged && (kotlin.math.abs(deltaX) > touchSlop || kotlin.math.abs(deltaY) > touchSlop)) {
+                    if (!dragged && (abs(deltaX) > touchSlop || abs(deltaY) > touchSlop)) {
                         dragged = true
+                        showDismissTarget()
                     }
                     if (dragged) {
                         val display = resources.displayMetrics
-                        params.x = (startX - deltaX).toInt().coerceIn(0, (display.widthPixels - view.width).coerceAtLeast(0))
-                        params.y = (startY + deltaY).toInt().coerceIn(0, (display.heightPixels - view.height).coerceAtLeast(0))
+                        val screenW = display.widthPixels
+                        val screenH = display.heightPixels
+                        val density = display.density
+
+                        params.x = (startX + deltaX).toInt().coerceIn(0, (screenW - view.width).coerceAtLeast(0))
+                        params.y = (startY + deltaY).toInt().coerceIn(0, (screenH - view.height).coerceAtLeast(0))
                         runCatching { windowManager.updateViewLayout(view, params) }
                             .onFailure { android.util.Log.w(TAG, "Could not move floating timer", it) }
+
+                        val targetCenterX = screenW / 2f
+                        val targetCenterY = screenH - 72 * density
+                        val distToTarget = hypot(event.rawX - targetCenterX, event.rawY - targetCenterY)
+
+                        val inBottomCenter = distToTarget < 95 * density
+                        val inBottomLeftCorner = event.rawX < 100 * density && event.rawY > screenH - 140 * density
+                        val inBottomRightCorner = event.rawX > screenW - 100 * density && event.rawY > screenH - 140 * density
+                        val inTopLeftCorner = event.rawX < 85 * density && event.rawY < 120 * density
+                        val inTopRightCorner = event.rawX > screenW - 85 * density && event.rawY < 120 * density
+
+                        val shouldDismiss = inBottomCenter || inBottomLeftCorner || inBottomRightCorner || inTopLeftCorner || inTopRightCorner
+                        if (shouldDismiss != isOverDismissTarget) {
+                            isOverDismissTarget = shouldDismiss
+                            updateDismissTargetState(shouldDismiss)
+                        }
                     }
                     return true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (dragged) {
+                    val wasOverDismiss = isOverDismissTarget
+                    removeDismissTarget()
+                    if (wasOverDismiss) {
+                        dismissBubble()
+                    } else if (dragged) {
                         preferences.edit()
                             .putInt("bubble_x", params.x)
                             .putInt("bubble_y", params.y)
@@ -455,17 +673,28 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
                     }
                     return true
                 }
-                MotionEvent.ACTION_CANCEL -> return true
+                MotionEvent.ACTION_CANCEL -> {
+                    removeDismissTarget()
+                    return true
+                }
             }
             return false
         }
     }
 
     private fun openApp() {
+        isAppInForeground = true
+        removeBubble()
+        removeDismissTarget()
         val intent = Intent().setClassName(this, "com.watchawatch.app.MainActivity").apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         startActivity(intent)
+    }
+
+    private fun getClockIcon(): Int {
+        val resId = resources.getIdentifier("ic_stat_watch", "drawable", packageName)
+        return if (resId != 0) resId else android.R.drawable.ic_menu_recent_history
     }
 
     private fun createNotification(): Notification {
@@ -501,8 +730,9 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val clockIcon = getClockIcon()
         val builder = Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_watch)
+            .setSmallIcon(clockIcon)
             .setContentTitle("🎯 $task")
             .setContentText("📁 $projectName • ${if (isRunning) "Running" else "Paused"}")
             .setContentIntent(openApp)
@@ -545,7 +775,7 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             val publicBuilder = Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_stat_watch)
+                .setSmallIcon(clockIcon)
                 .setContentTitle("🎯 $task")
                 .setContentText("📁 $projectName • ${if (isRunning) "Running" else "Paused"}")
                 .setContentIntent(openApp)
@@ -590,6 +820,7 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
         handler.removeCallbacks(ticker)
         preferences.unregisterOnSharedPreferenceChangeListener(this)
         removeBubble()
+        removeDismissTarget()
         updateWakeLock(false)
         super.onDestroy()
     }
@@ -609,6 +840,9 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
     }
 
     companion object {
+        const val ACTION_APP_FOREGROUND = "com.watchawatch.app.APP_FOREGROUND"
+        const val ACTION_APP_BACKGROUND = "com.watchawatch.app.APP_BACKGROUND"
+        const val ACTION_SHOW_BUBBLE = "com.watchawatch.app.SHOW_BUBBLE"
         const val ACTION_TOGGLE_TIMER = "com.watchawatch.app.TOGGLE_TIMER"
         const val ACTION_STOP_TIMER = "com.watchawatch.app.STOP_TIMER"
         const val ACTION_TOGGLE_BUBBLE = "com.watchawatch.app.TOGGLE_BUBBLE"
@@ -636,7 +870,7 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
     }
 }
 
-private class FloatingTimerBubble(context: Context) : LinearLayout(context) {
+private class FloatingTimerBubble(context: Context) : FrameLayout(context) {
     override fun performClick(): Boolean {
         super.performClick()
         return true

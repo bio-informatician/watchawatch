@@ -6,22 +6,24 @@ import shutil
 src_apk = "/home/agent/agent-work/projects/watchawatch/app/build/outputs/apk/debug/app-debug.apk"
 new_classes3 = "/home/agent/agent-work/scratch/dex_out/classes.dex"
 new_manifest = "/home/agent/agent-work/scratch/apk_staging/AndroidManifest.xml"
+new_watch_icon = "/home/agent/agent-work/scratch/apk_staging/ic_stat_watch.xml"
 unaligned_apk = "/home/agent/agent-work/scratch/unaligned_new.apk"
 aligned_apk = "/home/agent/agent-work/scratch/aligned_new.apk"
-final_versioned_apk = "/home/agent/agent-work/watchawatch-v1.2.0.apk"
+final_versioned_apk = "/home/agent/agent-work/watchawatch-v1.3.0.apk"
 final_generic_apk = "/home/agent/agent-work/watchawatch.apk"
 
 assert os.path.exists(new_classes3), f"Missing {new_classes3}"
 assert os.path.exists(new_manifest), f"Missing {new_manifest}"
+assert os.path.exists(new_watch_icon), f"Missing {new_watch_icon}"
 
 print(f"Reading {src_apk}...")
 with zipfile.ZipFile(src_apk, 'r') as zin, zipfile.ZipFile(unaligned_apk, 'w', compression=zipfile.ZIP_DEFLATED) as zout:
     for item in zin.infolist():
         fn = item.filename
-        # Exclude signatures, old classes3.dex, and old manifest
+        # Exclude signatures, old classes3.dex, old manifest, and old ic_stat_watch
         if fn.startswith('META-INF/') and (fn.endswith('.RSA') or fn.endswith('.SF') or fn.endswith('.MF')):
             continue
-        if fn == 'classes3.dex' or fn == 'AndroidManifest.xml':
+        if fn == 'classes3.dex' or fn == 'AndroidManifest.xml' or fn == 'res/drawable/ic_stat_watch.xml':
             continue
         data = zin.read(fn)
         zout.writestr(item, data)
@@ -37,6 +39,13 @@ with zipfile.ZipFile(src_apk, 'r') as zin, zipfile.ZipFile(unaligned_apk, 'w', c
     print("Adding new AndroidManifest.xml...")
     with open(new_manifest, 'rb') as f:
         zinfo = zipfile.ZipInfo('AndroidManifest.xml')
+        zinfo.compress_type = zipfile.ZIP_DEFLATED
+        zout.writestr(zinfo, f.read())
+
+    # Add new ic_stat_watch.xml
+    print("Adding new ic_stat_watch.xml...")
+    with open(new_watch_icon, 'rb') as f:
+        zinfo = zipfile.ZipInfo('res/drawable/ic_stat_watch.xml')
         zinfo.compress_type = zipfile.ZIP_DEFLATED
         zout.writestr(zinfo, f.read())
 
@@ -68,7 +77,7 @@ print("Verification result:\n" + res.stdout)
 shutil.copy(aligned_apk, final_versioned_apk)
 shutil.copy(aligned_apk, final_generic_apk)
 shutil.copy(aligned_apk, src_apk)
-shutil.copy(aligned_apk, "/home/agent/agent-work/projects/watchawatch/watchawatch-v1.2.0.apk")
+shutil.copy(aligned_apk, "/home/agent/agent-work/projects/watchawatch/watchawatch-v1.3.0.apk")
 
 print(f"SUCCESS: Generated {final_versioned_apk} ({os.path.getsize(final_versioned_apk) / (1024*1024):.1f} MB)")
 print(f"SUCCESS: Staged at {final_generic_apk}")

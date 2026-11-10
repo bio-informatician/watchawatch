@@ -464,6 +464,22 @@ private enum class Page(val label: String) {
 }
 
 class MainActivity : ComponentActivity() {
+    override fun onStart() {
+        super.onStart()
+        runCatching {
+            val intent = Intent(this, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_APP_FOREGROUND)
+            startService(intent)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        runCatching {
+            val intent = Intent(this, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_APP_BACKGROUND)
+            startService(intent)
+        }
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -476,7 +492,8 @@ class MainActivity : ComponentActivity() {
             ) {
                 if (Settings.canDrawOverlays(this)) {
                     runCatching {
-                        FloatingTimerService.start(this)
+                        val intent = Intent(this, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_SHOW_BUBBLE)
+                        startService(intent)
                         moveTaskToBack(true)
                     }.onFailure { error ->
                         Toast.makeText(this, "Could not start the floating timer: ${error.message ?: "unknown error"}", Toast.LENGTH_LONG).show()
@@ -499,7 +516,11 @@ class MainActivity : ComponentActivity() {
 
             LaunchedEffect(state.active != null) {
                 if (state.active != null) {
-                    runCatching { FloatingTimerService.start(this@MainActivity) }
+                    runCatching {
+                        FloatingTimerService.start(this@MainActivity)
+                        val intent = Intent(this@MainActivity, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_APP_FOREGROUND)
+                        startService(intent)
+                    }
                 }
             }
             val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
@@ -584,7 +605,8 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(this, "Start a focus timer before minimizing.", Toast.LENGTH_SHORT).show()
                         } else if (Settings.canDrawOverlays(this)) {
                             runCatching {
-                                FloatingTimerService.start(this)
+                                val intent = Intent(this, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_SHOW_BUBBLE)
+                                startService(intent)
                                 moveTaskToBack(true)
                             }.onFailure { error ->
                                 Toast.makeText(this, "Could not start the floating timer: ${error.message ?: "unknown error"}", Toast.LENGTH_LONG).show()

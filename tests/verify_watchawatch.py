@@ -147,6 +147,7 @@ def test_unit_tests():
     env = os.environ.copy()
     env["JAVA_HOME"] = JDK_HOME
     env["PATH"] = f"{os.path.join(JDK_HOME, 'bin')}:{env.get('PATH', '')}"
+    env["JAVA_OPTS"] = "-Xmx200m -XX:MaxMetaspaceSize=90m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
 
     test_srcs = [
         MODELS_PATH,
@@ -194,6 +195,7 @@ def test_service_compilation():
     env = os.environ.copy()
     env["JAVA_HOME"] = JDK_HOME
     env["PATH"] = f"{os.path.join(JDK_HOME, 'bin')}:{env.get('PATH', '')}"
+    env["JAVA_OPTS"] = "-Xmx200m -XX:MaxMetaspaceSize=90m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
 
     aapt2 = os.path.join(SDK_HOME, "build-tools", "34.0.0", "aapt2")
     compiled_res = os.path.join(build_dir, "res.zip")
