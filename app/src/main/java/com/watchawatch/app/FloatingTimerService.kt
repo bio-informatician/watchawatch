@@ -543,9 +543,20 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
         val bubbleActionLabel = if (isBubbleVisible) "Hide bubble" else "Show bubble"
         builder.addAction(Notification.Action.Builder(null, bubbleActionLabel, toggleBubble).build())
 
-        val notification = builder.build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            builder.setPublicVersion(notification)
+            val publicBuilder = Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_watch)
+                .setContentTitle("🎯 $task")
+                .setContentText("📁 $projectName • ${if (isRunning) "Running" else "Paused"}")
+                .setContentIntent(openApp)
+                .setOngoing(true)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setCategory(Notification.CATEGORY_STOPWATCH)
+            if (isRunning) {
+                publicBuilder.setUsesChronometer(true)
+                publicBuilder.setWhen(System.currentTimeMillis() - elapsed)
+            }
+            builder.setPublicVersion(publicBuilder.build())
         }
         return builder.build()
     }
@@ -553,16 +564,19 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             runCatching { notificationManager.deleteNotificationChannel("watchawatch_focus_timer") }
+            runCatching { notificationManager.deleteNotificationChannel("watchawatch_lockscreen_task_v3") }
+            runCatching { notificationManager.deleteNotificationChannel("watchawatch_lockscreen_timer_v6") }
             val channel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
-                "Active Focus Timer",
-                NotificationManager.IMPORTANCE_DEFAULT
+                "Active Focus Timer & Lock Screen",
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Displays live active task and timer on lock screen and status bar."
+                description = "Displays live active task and timer continuously on lock screen and status bar."
                 setShowBadge(true)
                 setSound(null, null)
                 enableVibration(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setBypassDnd(false)
             }
             notificationManager.createNotificationChannel(channel)
         }
@@ -599,7 +613,7 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
         const val ACTION_STOP_TIMER = "com.watchawatch.app.STOP_TIMER"
         const val ACTION_TOGGLE_BUBBLE = "com.watchawatch.app.TOGGLE_BUBBLE"
         const val ACTION_HIDE_FLOATING_TIMER = "com.watchawatch.app.HIDE_FLOATING_TIMER"
-        const val NOTIFICATION_CHANNEL_ID = "watchawatch_lockscreen_task_v3"
+        const val NOTIFICATION_CHANNEL_ID = "watchawatch_lockscreen_timer_v10"
         const val NOTIFICATION_ID = 101
         private const val PREFERENCES_NAME = "watchawatch"
         private const val STATE_KEY = "state"
