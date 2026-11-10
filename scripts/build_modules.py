@@ -25,7 +25,7 @@ MODULES = [
     ("watchawatch_viewmodel", ["/home/agent/agent-work/scratch/split_src/ViewModel.kt"], False),
     ("watchawatch_components", ["/home/agent/agent-work/scratch/split_src/Components.kt"], True),
     ("watchawatch_dialogs", ["/home/agent/agent-work/scratch/split_src/Dialogs.kt"], True),
-    ("watchawatch_sessions", ["/tmp/SessionsScreen.kt"], True),
+    ("watchawatch_sessions", ["/home/agent/agent-work/scratch/split_src/SessionsScreen.kt"], True),
     ("watchawatch_projects", ["/home/agent/agent-work/scratch/split_src/ProjectsScreen.kt"], True),
     ("watchawatch_reports", ["/home/agent/agent-work/scratch/split_src/ReportsScreen.kt"], True),
     ("watchawatch_settings", ["/home/agent/agent-work/scratch/split_src/SettingsScreen.kt"], True),
