@@ -6,9 +6,9 @@ import shutil
 src_apk = "/home/agent/agent-work/projects/watchawatch/app/build/outputs/apk/debug/app-debug.apk"
 linked_apk = "/home/agent/agent-work/scratch/linked_manifest.apk"
 new_classes3 = "/home/agent/agent-work/scratch/dex_out/classes.dex"
-unaligned_apk = "/home/agent/agent-work/scratch/unaligned_v140.apk"
-aligned_apk = "/home/agent/agent-work/scratch/aligned_v140.apk"
-final_versioned_apk = "/home/agent/agent-work/watchawatch-v1.4.0.apk"
+unaligned_apk = "/home/agent/agent-work/scratch/unaligned_v150.apk"
+aligned_apk = "/home/agent/agent-work/scratch/aligned_v150.apk"
+final_versioned_apk = "/home/agent/agent-work/watchawatch-v1.5.0.apk"
 final_generic_apk = "/home/agent/agent-work/watchawatch.apk"
 
 assert os.path.exists(src_apk), f"Missing {src_apk}"
@@ -90,7 +90,7 @@ print("Verification result:\n" + res.stdout)
 # Copy to final destinations
 shutil.copy(aligned_apk, final_versioned_apk)
 shutil.copy(aligned_apk, final_generic_apk)
-shutil.copy(aligned_apk, "/home/agent/agent-work/projects/watchawatch/watchawatch-v1.4.0.apk")
+shutil.copy(aligned_apk, "/home/agent/agent-work/projects/watchawatch/watchawatch-v1.5.0.apk")
 
 print(f"SUCCESS: Generated {final_versioned_apk} ({os.path.getsize(final_versioned_apk) / (1024*1024):.1f} MB)")
 print(f"SUCCESS: Staged at {final_generic_apk}")

@@ -18,7 +18,7 @@ if not token or not chat_id:
     print("ERROR: Telegram credentials not found")
     sys.exit(1)
 
-apk_filename = "watchawatch-v1.4.0.apk"
+apk_filename = "watchawatch-v1.5.0.apk"
 apk_path = os.path.expanduser(f"~/agent-work/{apk_filename}")
 if not os.path.exists(apk_path):
     print(f"ERROR: APK not found at {apk_path}")
@@ -30,7 +30,7 @@ print(f"Uploading {apk_filename} ({file_size_mb:.1f} MB) to Telegram...")
 with open(apk_path, "rb") as f:
     apk_data = f.read()
 
-boundary = "----WebKitFormBoundaryWatchaWatchUploadV140x9K"
+boundary = "----WebKitFormBoundaryWatchaWatchUploadV150x9K"
 body = bytearray()
 
 # chat_id
@@ -40,18 +40,19 @@ body.extend(f"{chat_id}\r\n".encode())
 
 # caption (must be < 1024 chars for Telegram Bot API)
 caption = (
-    "⏱️ WatchaWatch v1.4.0 (Build 140)\n\n"
-    "📌 اصلاح کامل آیکون‌ها، لوگو و متن ویجت حباب:\n\n"
-    "1️⃣ اصلاح اساسی آیکون اعلان و لوگوی برنامه:\n"
-    "  • بازتولید و تزریق کامل وکتور ساعت متریال ۲۴dp با ویژگی‌های کامل در هر دو مسیر drawable و drawable-v21.\n"
-    "  • تولید آیکون‌های رستر PNG شفاف ساعت (ic_stat_watch.png) در تمام رزولوشن‌ها (mdpi تا xxxhdpi) جهت نمایش قطعی ساعت سفید در نوار اعلان سامسونگ بدون مستطیل سیاه.\n"
-    "  • تولید آیکون‌های کامل برنامه (ic_launcher و round) در تمام تراکم‌ها برای رفع ایراد آیکون در صفحه خانگی.\n"
-    "  • اصلاح لوگوی ساعت بالای صفحه برنامه به یک حلقه کامل و بی‌نقص ۳۶۰ درجه طلایی.\n\n"
-    "2️⃣ بهینه‌سازی و اصلاح متن داخل حباب شناور:\n"
-    "  • نمایش عبارت تمیز و شکیل FOCUS TIME به جای بریدن کلمات.\n"
-    "  • حفظ پیوستگی حروف فارسی (letterSpacing صفر) برای تسک‌های فارسی.\n"
-    "  • قالب‌بندی زمان‌سنج به صورت استاندارد عددی (Locale.US) بدون جابجایی دو نقطه در زبان فارسی.\n\n"
-    "🔒 ۱۰۰٪ آفلاین، بدون اینترنت و ساین‌شده (v2+v3)"
+    "⏱️ WatchaWatch v1.5.0 (Build 150)\n\n"
+    "✨ طراحی و به‌روزرسانی کامل لوگو و هویت بصری برنامه:\n\n"
+    "1️⃣ بازطراحی لوکس آیکون برنامه (Launcher Icon):\n"
+    "  • طراحی کرونومتر دقیق و لوکس به سبک ساعت‌های مینیمال سوئیسی.\n"
+    "  • قاب طلای شامپاینی متالیک با بازتاب نور سه‌بعدی و سایه زیبا.\n"
+    "  • صفحه تیره کله‌غازی عمیق (Midnight Teal) با درجه‌بندی دقیق و نشانگر دوتایی ۱۲.\n"
+    "  • قوس تمرکز درخشان (Focus Arc) با طیف نئونی زمردی تا فیروزه‌ای، نماد نشست فعال.\n"
+    "  • مونوگرام مینیمال W طلایی و عقربه‌های تراش‌خورده در حالت کلاسیک ۱۰:۱۰.\n\n"
+    "2️⃣ پیاده‌سازی لوگوی جدید داخل برنامه (BrandMark):\n"
+    "  • رندر شفاف Jetpack Compose با گرادینت‌های زیبا در سربرگ صفحه اصلی (Today).\n"
+    "  • درج نشان رسمی در صفحه تنظیمات (Settings) بالای شماره نسخه.\n"
+    "  • تولید تمام آیکون‌های رستر با فناوری Super-Sampling Anti-Aliasing.\n\n"
+    "🔒 ۱۰۰٪ آفلاین، بدون اینترنت و ساین‌شده معتبر (v2+v3)"
 )
 body.extend(f"--{boundary}\r\n".encode())
 body.extend(b'Content-Disposition: form-data; name="caption"\r\n\r\n')

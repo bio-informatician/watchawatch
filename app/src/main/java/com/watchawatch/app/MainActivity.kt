@@ -100,7 +100,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -1866,7 +1868,14 @@ private fun SettingsPage(
             }
         }
         item {
-            Text("WATCHAWATCH  ·  VERSION 1.4.0 (BUILD 140)", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                BrandMark(Modifier.size(48.dp))
+                Text("WATCHAWATCH  ·  VERSION 1.5.0 (BUILD 150)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
     if (confirmDelete) {
@@ -2014,58 +2023,212 @@ private fun EmptyState(title: String, detail: String) {
 
 @Composable
 private fun BrandMark(modifier: Modifier = Modifier) {
-    Canvas(modifier.semantics { contentDescription = "WatchaWatch clock logo" }) {
+    Canvas(modifier.semantics { contentDescription = "WatchaWatch luxury chronometer logo" }) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val radius = size.minDimension * 0.48f
+
+        // 1. Ambient soft shadow
+        drawCircle(
+            color = Color.Black.copy(alpha = 0.22f),
+            radius = radius,
+            center = Offset(center.x, center.y + radius * 0.04f)
+        )
+
+        // 2. Outer Bezel (Champagne Gold metallic gradient)
         drawCircle(
             brush = Brush.linearGradient(
-                listOf(Color(0xFF0D9488), Color(0xFF15536A), Color(0xFF273B64))
+                colors = listOf(Color(0xFFFFF4D0), Color(0xFFF3BF59), Color(0xFFB37D28)),
+                start = Offset(center.x - radius, center.y - radius),
+                end = Offset(center.x + radius, center.y + radius)
             ),
-            radius = radius,
+            radius = radius * 0.96f,
             center = center
         )
+
+        // 3. Inner Bezel Ridge (Polished gold highlight)
         drawCircle(
-            color = Color(0xFFFFE9C9),
-            radius = radius * 0.76f,
+            color = Color(0xFFFFF7DA),
+            radius = radius * 0.865f,
             center = center,
-            style = Stroke(width = size.minDimension * 0.045f)
+            style = Stroke(width = size.minDimension * 0.02f)
         )
+
+        // 4. Dial Face (Deep Midnight Teal with radial gradient)
+        val dialRadius = radius * 0.855f
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFF135360), Color(0xFF092830), Color(0xFF05171B)),
+                center = center,
+                radius = dialRadius
+            ),
+            radius = dialRadius,
+            center = center
+        )
+
+        // 5. Track Ring
+        val trackRadius = radius * 0.74f
+        drawCircle(
+            color = Color(0xFF1E5864),
+            radius = trackRadius,
+            center = center,
+            style = Stroke(width = size.minDimension * 0.015f)
+        )
+
+        // 6. Active Focus Arc (Emerald to Cyan/Mint: 12h / -90 deg sweeping 135 deg to 4:30h)
+        val focusRadius = (dialRadius + trackRadius) * 0.50f
+        val focusStrokeWidth = size.minDimension * 0.065f
         drawArc(
-            color = Color(0xFFFFBE71),
-            startAngle = 0f,
-            sweepAngle = 360f,
+            brush = Brush.sweepGradient(
+                0.0f to Color(0xFF10B981),
+                0.375f to Color(0xFF2DD4BF),
+                1.0f to Color(0xFF10B981),
+                center = center
+            ),
+            startAngle = -90f,
+            sweepAngle = 135f,
             useCenter = false,
-            topLeft = Offset(center.x - radius * 0.66f, center.y - radius * 0.66f),
-            size = androidx.compose.ui.geometry.Size(radius * 1.32f, radius * 1.32f),
-            style = Stroke(width = size.minDimension * 0.05f, cap = StrokeCap.Round)
+            topLeft = Offset(center.x - focusRadius, center.y - focusRadius),
+            size = androidx.compose.ui.geometry.Size(focusRadius * 2f, focusRadius * 2f),
+            style = Stroke(width = focusStrokeWidth, cap = StrokeCap.Round)
         )
-        for (tick in 0 until 12) {
-            val angle = Math.toRadians((tick * 30 - 90).toDouble())
-            val inner = radius * 0.55f
-            val outer = radius * 0.65f
+
+        // Luminous Pip at leading edge
+        val pipAngle = Math.toRadians(45.0)
+        val pipCenter = Offset(
+            center.x + (cos(pipAngle) * focusRadius).toFloat(),
+            center.y + (sin(pipAngle) * focusRadius).toFloat()
+        )
+        drawCircle(
+            color = Color.White,
+            radius = size.minDimension * 0.032f,
+            center = pipCenter
+        )
+
+        // 7. 12 o'clock Double Luxury Baton
+        val batonLen = size.minDimension * 0.075f
+        val batonStroke = size.minDimension * 0.024f
+        val batonSpacing = size.minDimension * 0.032f
+        val batonInner = dialRadius * 0.78f
+        val batonOuter = dialRadius * 0.94f
+        drawLine(
+            color = Color(0xFFFFE292),
+            start = Offset(center.x - batonSpacing / 2f, center.y - batonOuter),
+            end = Offset(center.x - batonSpacing / 2f, center.y - batonInner),
+            strokeWidth = batonStroke,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = Color(0xFFFFE292),
+            start = Offset(center.x + batonSpacing / 2f, center.y - batonOuter),
+            end = Offset(center.x + batonSpacing / 2f, center.y - batonInner),
+            strokeWidth = batonStroke,
+            cap = StrokeCap.Round
+        )
+
+        // 8. Cardinal Hour Indices (3, 6, 9)
+        val cardinalHours = listOf(3, 6, 9)
+        for (h in cardinalHours) {
+            val angle = Math.toRadians((h * 30 - 90).toDouble())
             drawLine(
-                color = Color.White.copy(alpha = if (tick % 3 == 0) 0.95f else 0.65f),
-                start = Offset(center.x + cos(angle).toFloat() * inner, center.y + sin(angle).toFloat() * inner),
-                end = Offset(center.x + cos(angle).toFloat() * outer, center.y + sin(angle).toFloat() * outer),
-                strokeWidth = size.minDimension * if (tick % 3 == 0) 0.045f else 0.028f,
+                color = Color(0xFFFFE292),
+                start = Offset(center.x + (cos(angle) * batonInner).toFloat(), center.y + (sin(angle) * batonInner).toFloat()),
+                end = Offset(center.x + (cos(angle) * batonOuter).toFloat(), center.y + (sin(angle) * batonOuter).toFloat()),
+                strokeWidth = batonStroke,
                 cap = StrokeCap.Round
             )
         }
+
+        // Minor hour ticks (1, 2, 4, 5, 7, 8, 10, 11)
+        val minorHours = listOf(1, 2, 4, 5, 7, 8, 10, 11)
+        for (h in minorHours) {
+            val angle = Math.toRadians((h * 30 - 90).toDouble())
+            val inner = dialRadius * 0.83f
+            val outer = dialRadius * 0.93f
+            drawLine(
+                color = Color(0xFFFFEFC4).copy(alpha = 0.85f),
+                start = Offset(center.x + (cos(angle) * inner).toFloat(), center.y + (sin(angle) * inner).toFloat()),
+                end = Offset(center.x + (cos(angle) * outer).toFloat(), center.y + (sin(angle) * outer).toFloat()),
+                strokeWidth = size.minDimension * 0.018f,
+                cap = StrokeCap.Round
+            )
+        }
+
+        // 9. "W" Monogram below 12 o'clock
+        val wCenterY = center.y - dialRadius * 0.44f
+        val wWidth = size.minDimension * 0.16f
+        val wHeight = size.minDimension * 0.09f
+        val wStroke = size.minDimension * 0.022f
+        val wPath = Path().apply {
+            moveTo(center.x - wWidth * 0.5f, wCenterY - wHeight * 0.5f)
+            lineTo(center.x - wWidth * 0.24f, wCenterY + wHeight * 0.5f)
+            lineTo(center.x, wCenterY - wHeight * 0.15f)
+            lineTo(center.x + wWidth * 0.24f, wCenterY + wHeight * 0.5f)
+            lineTo(center.x + wWidth * 0.5f, wCenterY - wHeight * 0.5f)
+        }
+        drawPath(
+            path = wPath,
+            color = Color(0xFFFFDE8A),
+            style = Stroke(width = wStroke, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+
+        // 10. Hour Hand (Faceted Champagne Gold at 10:10 stance -> 304.5 deg)
+        val hAngle = Math.toRadians((304.5 - 90.0))
+        val hLen = dialRadius * 0.58f
+        val hEnd = Offset(center.x + (cos(hAngle) * hLen).toFloat(), center.y + (sin(hAngle) * hLen).toFloat())
+        drawLine(
+            color = Color(0xFFFFEBA2),
+            start = center,
+            end = hEnd,
+            strokeWidth = size.minDimension * 0.065f,
+            cap = StrokeCap.Round
+        )
+
+        // 11. Minute Hand (Crisp Platinum White at 10:10 stance -> 62 deg)
+        val mAngle = Math.toRadians((62.0 - 90.0))
+        val mLen = dialRadius * 0.80f
+        val mEnd = Offset(center.x + (cos(mAngle) * mLen).toFloat(), center.y + (sin(mAngle) * mLen).toFloat())
         drawLine(
             color = Color.White,
             start = center,
-            end = Offset(center.x, center.y - radius * 0.39f),
-            strokeWidth = size.minDimension * 0.065f,
+            end = mEnd,
+            strokeWidth = size.minDimension * 0.055f,
             cap = StrokeCap.Round
         )
+
+        // 12. Seconds Needle (Electric Mint -> 225 deg)
+        val sAngle = Math.toRadians((225.0 - 90.0))
+        val sLen = dialRadius * 0.88f
+        val sTailLen = dialRadius * 0.22f
+        val sStart = Offset(center.x - (cos(sAngle) * sTailLen).toFloat(), center.y - (sin(sAngle) * sTailLen).toFloat())
+        val sEnd = Offset(center.x + (cos(sAngle) * sLen).toFloat(), center.y + (sin(sAngle) * sLen).toFloat())
         drawLine(
-            color = Color(0xFFFFBE71),
-            start = center,
-            end = Offset(center.x + radius * 0.34f, center.y + radius * 0.2f),
-            strokeWidth = size.minDimension * 0.065f,
+            color = Color(0xFF2DD4BF),
+            start = sStart,
+            end = sEnd,
+            strokeWidth = size.minDimension * 0.020f,
             cap = StrokeCap.Round
         )
-        drawCircle(color = Color(0xFFFFBE71), radius = size.minDimension * 0.075f, center = center)
+
+        // 13. Center Pinion (Gold Collar with Emerald Core & Specular Dot)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFFFFF4D0), Color(0xFFFFDF8C), Color(0xFFB37924)),
+                center = center,
+                radius = size.minDimension * 0.09f
+            ),
+            radius = size.minDimension * 0.085f,
+            center = center
+        )
+        drawCircle(
+            color = Color(0xFF0F766E),
+            radius = size.minDimension * 0.040f,
+            center = center
+        )
+        drawCircle(
+            color = Color.White,
+            radius = size.minDimension * 0.015f,
+            center = Offset(center.x - size.minDimension * 0.012f, center.y - size.minDimension * 0.012f)
+        )
     }
 }
 
