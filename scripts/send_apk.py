@@ -18,7 +18,7 @@ if not token or not chat_id:
     print("ERROR: Telegram credentials not found")
     sys.exit(1)
 
-apk_filename = "watchawatch-v1.5.0.apk"
+apk_filename = "watchawatch-v1.5.1.apk"
 apk_path = os.path.expanduser(f"~/agent-work/{apk_filename}")
 if not os.path.exists(apk_path):
     print(f"ERROR: APK not found at {apk_path}")
@@ -30,7 +30,7 @@ print(f"Uploading {apk_filename} ({file_size_mb:.1f} MB) to Telegram...")
 with open(apk_path, "rb") as f:
     apk_data = f.read()
 
-boundary = "----WebKitFormBoundaryWatchaWatchUploadV150x9K"
+boundary = "----WebKitFormBoundaryWatchaWatchUploadV151x7K"
 body = bytearray()
 
 # chat_id
@@ -40,18 +40,15 @@ body.extend(f"{chat_id}\r\n".encode())
 
 # caption (must be < 1024 chars for Telegram Bot API)
 caption = (
-    "⏱️ WatchaWatch v1.5.0 (Build 150)\n\n"
-    "✨ طراحی و به‌روزرسانی کامل لوگو و هویت بصری برنامه:\n\n"
-    "1️⃣ بازطراحی لوکس آیکون برنامه (Launcher Icon):\n"
-    "  • طراحی کرونومتر دقیق و لوکس به سبک ساعت‌های مینیمال سوئیسی.\n"
-    "  • قاب طلای شامپاینی متالیک با بازتاب نور سه‌بعدی و سایه زیبا.\n"
-    "  • صفحه تیره کله‌غازی عمیق (Midnight Teal) با درجه‌بندی دقیق و نشانگر دوتایی ۱۲.\n"
-    "  • قوس تمرکز درخشان (Focus Arc) با طیف نئونی زمردی تا فیروزه‌ای، نماد نشست فعال.\n"
-    "  • مونوگرام مینیمال W طلایی و عقربه‌های تراش‌خورده در حالت کلاسیک ۱۰:۱۰.\n\n"
-    "2️⃣ پیاده‌سازی لوگوی جدید داخل برنامه (BrandMark):\n"
-    "  • رندر شفاف Jetpack Compose با گرادینت‌های زیبا در سربرگ صفحه اصلی (Today).\n"
-    "  • درج نشان رسمی در صفحه تنظیمات (Settings) بالای شماره نسخه.\n"
-    "  • تولید تمام آیکون‌های رستر با فناوری Super-Sampling Anti-Aliasing.\n\n"
+    "⏱️ WatchaWatch v1.5.1 (Build 151)\n\n"
+    "🎯 رفع مشکل عدم نمایش آیکون در لیست برنامه‌ها (App Drawer / Launcher):\n\n"
+    "1️⃣ همگام‌سازی کامل شناسه منابع با جدول پایدار (Stable Resource IDs):\n"
+    "  • ارجاع مستقیم آیکون در مانیفست به شناسه واقعی mipmap/ic_launcher (0x7f080000).\n"
+    "  • تعریف صریح آیکون و برچسب هم در سطح Application و هم در سطح MainActivity.\n"
+    "  • اصلاح لینک لایه‌های Adaptive Icon (پس‌زمینه و پیش‌زمینه طلایی-زمردی).\n\n"
+    "2️⃣ پوشش کامل انواع لانچرهای اندروید:\n"
+    "  • قرارگیری آیکون استاندارد و گرد (ic_launcher_round) در تمامی تراکم‌ها (mdpi تا xxxhdpi).\n"
+    "  • افزایش شماره نسخه به 151 جهت پاک‌سازی کش کشوی برنامه‌های گوشی.\n\n"
     "🔒 ۱۰۰٪ آفلاین، بدون اینترنت و ساین‌شده معتبر (v2+v3)"
 )
 body.extend(f"--{boundary}\r\n".encode())
