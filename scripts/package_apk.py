@@ -7,9 +7,10 @@ import sys
 JDK_HOME = "/home/agent/agent-work/bin/jdk-17"
 SDK_BIN = "/home/agent/agent-work/bin/android-sdk/build-tools/34.0.0"
 ANDROID_JAR = "/home/agent/agent-work/bin/android-sdk/platforms/android-34/android.jar"
-KEYSTORE = "/home/agent/agent-work/.android/debug.keystore"
-
 PROJECT_ROOT = "/home/agent/agent-work/projects/watchawatch"
+KEYSTORE = f"{PROJECT_ROOT}/watchawatch-release.keystore"
+KEYSTORE_PASS = "watchawatch2026"
+
 RES_DIR = f"{PROJECT_ROOT}/app/src/main/res"
 MANIFEST_PATH = f"{PROJECT_ROOT}/app/src/main/AndroidManifest.xml"
 STABLE_IDS = f"{PROJECT_ROOT}/app/build/intermediates/stable_resource_ids_file/debug/processDebugResources/stableIds.txt"
@@ -18,11 +19,11 @@ SRC_APK = f"{PROJECT_ROOT}/app/build/outputs/apk/debug/app-debug.apk"
 COMPILED_RES = "/home/agent/agent-work/scratch/compiled_res.zip"
 LINKED_APK = "/home/agent/agent-work/scratch/linked_manifest.apk"
 NEW_CLASSES3 = "/home/agent/agent-work/scratch/dex_out/classes.dex"
-UNALIGNED_APK = "/home/agent/agent-work/scratch/unaligned_v151.apk"
-ALIGNED_APK = "/home/agent/agent-work/scratch/aligned_v151.apk"
-FINAL_VERSIONED_APK = "/home/agent/agent-work/watchawatch-v1.5.1.apk"
+UNALIGNED_APK = "/home/agent/agent-work/scratch/unaligned_v152.apk"
+ALIGNED_APK = "/home/agent/agent-work/scratch/aligned_v152.apk"
+FINAL_VERSIONED_APK = "/home/agent/agent-work/watchawatch-v1.5.2.apk"
 FINAL_GENERIC_APK = "/home/agent/agent-work/watchawatch.apk"
-PROJECT_COPY_APK = f"{PROJECT_ROOT}/watchawatch-v1.5.1.apk"
+PROJECT_COPY_APK = f"{PROJECT_ROOT}/watchawatch-v1.5.2.apk"
 
 assert os.path.exists(SRC_APK), f"Missing {SRC_APK}"
 assert os.path.exists(NEW_CLASSES3), f"Missing {NEW_CLASSES3}"
@@ -40,6 +41,8 @@ print("2. Linking manifest and resources via aapt2 link with --stable-ids...")
 subprocess.run([
     f"{SDK_BIN}/aapt2", "link",
     "-I", ANDROID_JAR,
+    "--min-sdk-version", "26",
+    "--target-sdk-version", "34",
     "--manifest", MANIFEST_PATH,
     "--stable-ids", STABLE_IDS,
     "-o", LINKED_APK,
@@ -105,12 +108,12 @@ with zipfile.ZipFile(SRC_APK, 'r') as zin, zipfile.ZipFile(UNALIGNED_APK, 'w', c
 print("5. Zipalign APK (4-byte alignment)...")
 subprocess.run([f"{SDK_BIN}/zipalign", "-p", "-f", "4", UNALIGNED_APK, ALIGNED_APK], check=True)
 
-print("6. Signing APK with v2 + v3 schemes via apksigner...")
+print("6. Signing APK with v2 + v3 schemes via apksigner using release key...")
 subprocess.run([
     f"{SDK_BIN}/apksigner", "sign",
     "--ks", KEYSTORE,
-    "--ks-pass", "pass:android",
-    "--key-pass", "pass:android",
+    "--ks-pass", f"pass:{KEYSTORE_PASS}",
+    "--key-pass", f"pass:{KEYSTORE_PASS}",
     ALIGNED_APK
 ], check=True)
 
@@ -121,11 +124,14 @@ print("Signature verification:\n" + res.stdout)
 print("8. Validating package badging (label and launcher icon)...")
 badging = subprocess.run([f"{SDK_BIN}/aapt2", "dump", "badging", ALIGNED_APK], stdout=subprocess.PIPE, text=True, check=True).stdout
 for line in badging.splitlines():
-    if "icon" in line or "label" in line or "launchable" in line:
+    if "icon" in line or "label" in line or "launchable" in line or "sdk" in line.lower():
         print("  " + line)
 
 assert "application: label='WatchaWatch' icon='res/mipmap-anydpi-v26/ic_launcher.xml'" in badging, "Application icon missing or corrupt!"
 assert "launchable-activity: name='com.watchawatch.app.MainActivity'  label='WatchaWatch' icon='res/mipmap-anydpi-v26/ic_launcher.xml'" in badging, "Launchable activity icon missing or corrupt!"
+assert "sdkVersion:'26'" in badging, "sdkVersion 26 missing!"
+assert "targetSdkVersion:'34'" in badging, "targetSdkVersion 34 missing!"
+assert "targetSdkVersion < 4" not in badging, "Legacy implied permissions present!"
 
 # Copy to final destinations
 shutil.copy(ALIGNED_APK, FINAL_VERSIONED_APK)

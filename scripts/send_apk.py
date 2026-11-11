@@ -18,7 +18,7 @@ if not token or not chat_id:
     print("ERROR: Telegram credentials not found")
     sys.exit(1)
 
-apk_filename = "watchawatch-v1.5.1.apk"
+apk_filename = "watchawatch-v1.5.2.apk"
 apk_path = os.path.expanduser(f"~/agent-work/{apk_filename}")
 if not os.path.exists(apk_path):
     print(f"ERROR: APK not found at {apk_path}")
@@ -30,7 +30,7 @@ print(f"Uploading {apk_filename} ({file_size_mb:.1f} MB) to Telegram...")
 with open(apk_path, "rb") as f:
     apk_data = f.read()
 
-boundary = "----WebKitFormBoundaryWatchaWatchUploadV151x7K"
+boundary = "----WebKitFormBoundaryWatchaWatchUploadV152x9P"
 body = bytearray()
 
 # chat_id
@@ -40,16 +40,16 @@ body.extend(f"{chat_id}\r\n".encode())
 
 # caption (must be < 1024 chars for Telegram Bot API)
 caption = (
-    "⏱️ WatchaWatch v1.5.1 (Build 151)\n\n"
-    "🎯 رفع مشکل عدم نمایش آیکون در لیست برنامه‌ها (App Drawer / Launcher):\n\n"
-    "1️⃣ همگام‌سازی کامل شناسه منابع با جدول پایدار (Stable Resource IDs):\n"
-    "  • ارجاع مستقیم آیکون در مانیفست به شناسه واقعی mipmap/ic_launcher (0x7f080000).\n"
-    "  • تعریف صریح آیکون و برچسب هم در سطح Application و هم در سطح MainActivity.\n"
-    "  • اصلاح لینک لایه‌های Adaptive Icon (پس‌زمینه و پیش‌زمینه طلایی-زمردی).\n\n"
-    "2️⃣ پوشش کامل انواع لانچرهای اندروید:\n"
-    "  • قرارگیری آیکون استاندارد و گرد (ic_launcher_round) در تمامی تراکم‌ها (mdpi تا xxxhdpi).\n"
-    "  • افزایش شماره نسخه به 151 جهت پاک‌سازی کش کشوی برنامه‌های گوشی.\n\n"
-    "🔒 ۱۰۰٪ آفلاین، بدون اینترنت و ساین‌شده معتبر (v2+v3)"
+    "⏱️ WatchaWatch v1.5.2 (Build 152)\n\n"
+    "🛡️ حل هشدار امنیتی Google Play Protect و بهینه‌سازی پکیج:\n\n"
+    "1️⃣ تعیین صریح تارگت اندروید (targetSdkVersion = 34):\n"
+    "  • جلوگیری از اعمال دسترسی‌های کاذب اندرویدهای قدیمی (مانند READ_PHONE_STATE).\n"
+    "  • تطابق کامل با الزامات امنیتی اندروید ۱۴.\n\n"
+    "2️⃣ امضای رسمی با گواهی Release مستقل:\n"
+    "  • جایگزینی debug.keystore با کلید معتبر ۲۵ ساله رسمی WatchaWatch (امضای v2 + v3).\n\n"
+    "3️⃣ راهنمای نصب:\n"
+    "  • در صورت مشاهده کادر Play Protect، انتخاب گزینه «Install anyway» کافی است.\n\n"
+    "🔒 کاملاً امن، آفلاین، بدون نیاز به اینترنت و بدون ردیابی"
 )
 body.extend(f"--{boundary}\r\n".encode())
 body.extend(b'Content-Disposition: form-data; name="caption"\r\n\r\n')

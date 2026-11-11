@@ -1874,7 +1874,7 @@ private fun SettingsPage(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 BrandMark(Modifier.size(48.dp))
-                Text("WATCHAWATCH  ·  VERSION 1.5.1 (BUILD 151)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+                Text("WATCHAWATCH  ·  VERSION 1.5.2 (BUILD 152)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
             }
         }
     }

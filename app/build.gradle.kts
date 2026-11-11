@@ -28,8 +28,8 @@ android {
         applicationId = "com.watchawatch.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 151
-        versionName = "1.5.1"
+        versionCode = 152
+        versionName = "1.5.2"
     }
 
     if (hasUploadSigning) {

@@ -4,3 +4,6 @@ node_modules/
 local.properties
 build/
 app/build/
+*.apk
+*.keystore
+*.jks
