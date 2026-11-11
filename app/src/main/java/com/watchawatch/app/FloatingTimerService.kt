@@ -81,14 +81,32 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
         }
     }
 
+    private fun formatBubbleCaption(rawTask: String?): String {
+        val task = rawTask?.trim().orEmpty()
+        if (task.isBlank() ||
+            task.equals("Focus session", ignoreCase = true) ||
+            task.equals("Focus", ignoreCase = true) ||
+            task.equals("FOCUS TIME", ignoreCase = true)
+        ) {
+            return "FOCUS TIME"
+        }
+        val hasRtl = task.any { it.code in 0x0600..0x06FF }
+        if (hasRtl) {
+            return if (task.length > 11) task.take(10) + "…" else task
+        }
+        val upper = task.uppercase(Locale.ENGLISH)
+        return if (upper.length > 11) upper.take(10) + "…" else upper
+    }
+
     private val ticker = object : Runnable {
         override fun run() {
             val timer = currentTimer ?: return
             val elapsed = timer.elapsedAt(System.currentTimeMillis())
             timerLabel?.text = formatOverlayTime(elapsed)
-            val taskName = timer.task.trim().ifBlank { "FOCUS" }
-            val displayTask = if (taskName.length > 9) taskName.take(8) + "…" else taskName
-            captionLabel?.text = displayTask.uppercase(Locale.getDefault())
+            val captionText = formatBubbleCaption(timer.task)
+            val hasRtl = captionText.any { it.code in 0x0600..0x06FF }
+            captionLabel?.letterSpacing = if (hasRtl) 0f else 0.08f
+            captionLabel?.text = captionText
             bubble?.contentDescription =
                 "Floating focus timer, ${formatOverlayTime(elapsed)} elapsed. Tap to return to WatchaWatch."
 
@@ -489,16 +507,16 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
             setStroke((2 * density).toInt(), AndroidColor.rgb(255, 158, 68))
         }
 
-        val taskName = (currentTimer?.task?.trim()?.ifBlank { "FOCUS" } ?: "FOCUS")
-        val displayTask = if (taskName.length > 9) taskName.take(8) + "…" else taskName
+        val captionText = formatBubbleCaption(currentTimer?.task)
+        val hasRtl = captionText.any { it.code in 0x0600..0x06FF }
 
         val caption = TextView(this).apply {
             setTextColor(AndroidColor.rgb(194, 239, 229))
-            textSize = 8.5f
+            textSize = 9f
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
             gravity = Gravity.CENTER
-            letterSpacing = 0.12f
-            text = displayTask.uppercase(Locale.getDefault())
+            letterSpacing = if (hasRtl) 0f else 0.08f
+            text = captionText
         }
         captionLabel = caption
 
@@ -515,6 +533,7 @@ class FloatingTimerService : Service(), SharedPreferences.OnSharedPreferenceChan
         val textContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
+            setPadding((4 * density).toInt(), (2 * density).toInt(), (4 * density).toInt(), (2 * density).toInt())
             addView(caption, LinearLayout.LayoutParams(-1, -2))
             addView(time, LinearLayout.LayoutParams(-1, -2))
         }
@@ -879,5 +898,5 @@ private class FloatingTimerBubble(context: Context) : FrameLayout(context) {
 
 internal fun formatOverlayTime(milliseconds: Long): String {
     val seconds = milliseconds.coerceAtLeast(0) / 1000
-    return "%02d:%02d:%02d".format(Locale.getDefault(), seconds / 3600, (seconds / 60) % 60, seconds % 60)
+    return String.format(Locale.US, "%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60)
 }

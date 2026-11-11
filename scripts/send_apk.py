@@ -18,7 +18,7 @@ if not token or not chat_id:
     print("ERROR: Telegram credentials not found")
     sys.exit(1)
 
-apk_filename = "watchawatch-v1.3.0.apk"
+apk_filename = "watchawatch-v1.4.0.apk"
 apk_path = os.path.expanduser(f"~/agent-work/{apk_filename}")
 if not os.path.exists(apk_path):
     print(f"ERROR: APK not found at {apk_path}")
@@ -30,7 +30,7 @@ print(f"Uploading {apk_filename} ({file_size_mb:.1f} MB) to Telegram...")
 with open(apk_path, "rb") as f:
     apk_data = f.read()
 
-boundary = "----WebKitFormBoundaryWatchaWatchUploadV130x7Z"
+boundary = "----WebKitFormBoundaryWatchaWatchUploadV140x9K"
 body = bytearray()
 
 # chat_id
@@ -40,17 +40,17 @@ body.extend(f"{chat_id}\r\n".encode())
 
 # caption (must be < 1024 chars for Telegram Bot API)
 caption = (
-    "⏱️ WatchaWatch v1.3.0 (Build 130)\n\n"
-    "📌 برطرف‌سازی ۳ ایراد ویجت شناور و اعلان:\n\n"
-    "1️⃣ مخفی شدن هوشمند فلوت هنگام بازگشت به برنامه:\n"
-    "  • با لمس فلوت یا ورود به برنامه، ویجت شناور مخفی شده و فقط برنامه دیده می‌شود.\n"
-    "  • هنگام مینیمایز یا خروج به صفحه اصلی، فلوت شناور دوباره نمایش داده می‌شود.\n\n"
-    "2️⃣ امکان خاموش کردن و حذف فلوت درون خودش:\n"
-    "  • دکمه سریع (✕) در گوشه ویجت برای بستن فوری.\n"
-    "  • امکان کشیدن (درگ) به گوشه‌ها یا پایین صفحه برای حذف ویجت (Drop to remove).\n\n"
-    "3️⃣ اصلاح آیکون ساعت نوار بالا و متن فلوت:\n"
-    "  • اصلاح کامل آیکون بالای صفحه از مستطیل سیاه به ساعت استاندارد متریال.\n"
-    "  • رفع متن طولانی مسیر فایل و نمایش عنوان کوتاه تسک به همراه ثانیه‌شمار.\n\n"
+    "⏱️ WatchaWatch v1.4.0 (Build 140)\n\n"
+    "📌 اصلاح کامل آیکون‌ها، لوگو و متن ویجت حباب:\n\n"
+    "1️⃣ اصلاح اساسی آیکون اعلان و لوگوی برنامه:\n"
+    "  • بازتولید و تزریق کامل وکتور ساعت متریال ۲۴dp با ویژگی‌های کامل در هر دو مسیر drawable و drawable-v21.\n"
+    "  • تولید آیکون‌های رستر PNG شفاف ساعت (ic_stat_watch.png) در تمام رزولوشن‌ها (mdpi تا xxxhdpi) جهت نمایش قطعی ساعت سفید در نوار اعلان سامسونگ بدون مستطیل سیاه.\n"
+    "  • تولید آیکون‌های کامل برنامه (ic_launcher و round) در تمام تراکم‌ها برای رفع ایراد آیکون در صفحه خانگی.\n"
+    "  • اصلاح لوگوی ساعت بالای صفحه برنامه به یک حلقه کامل و بی‌نقص ۳۶۰ درجه طلایی.\n\n"
+    "2️⃣ بهینه‌سازی و اصلاح متن داخل حباب شناور:\n"
+    "  • نمایش عبارت تمیز و شکیل FOCUS TIME به جای بریدن کلمات.\n"
+    "  • حفظ پیوستگی حروف فارسی (letterSpacing صفر) برای تسک‌های فارسی.\n"
+    "  • قالب‌بندی زمان‌سنج به صورت استاندارد عددی (Locale.US) بدون جابجایی دو نقطه در زبان فارسی.\n\n"
     "🔒 ۱۰۰٪ آفلاین، بدون اینترنت و ساین‌شده (v2+v3)"
 )
 body.extend(f"--{boundary}\r\n".encode())

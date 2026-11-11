@@ -1866,7 +1866,7 @@ private fun SettingsPage(
             }
         }
         item {
-            Text("WATCHAWATCH  ·  VERSION 1.0", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+            Text("WATCHAWATCH  ·  VERSION 1.4.0 (BUILD 140)", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
         }
     }
     if (confirmDelete) {
@@ -2032,8 +2032,8 @@ private fun BrandMark(modifier: Modifier = Modifier) {
         )
         drawArc(
             color = Color(0xFFFFBE71),
-            startAngle = 218f,
-            sweepAngle = 245f,
+            startAngle = 0f,
+            sweepAngle = 360f,
             useCenter = false,
             topLeft = Offset(center.x - radius * 0.66f, center.y - radius * 0.66f),
             size = androidx.compose.ui.geometry.Size(radius * 1.32f, radius * 1.32f),
@@ -2443,7 +2443,7 @@ private fun formatDuration(milliseconds: Long): String = SessionTimelineLogic.fo
 
 private fun formatClock(milliseconds: Long): String {
     val seconds = milliseconds.coerceAtLeast(0) / 1000
-    return "%02d:%02d:%02d".format(Locale.getDefault(), seconds / 3600, (seconds / 60) % 60, seconds % 60)
+    return String.format(Locale.US, "%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60)
 }
 
 private fun greeting(): String = when (java.time.LocalTime.now().hour) {
